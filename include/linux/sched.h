@@ -49,7 +49,7 @@ struct sched_param {
 };
 
 #include <asm/param.h>	/* for HZ */
-
+#include <linux/atomic.h>
 #include <linux/capability.h>
 #include <linux/threads.h>
 #include <linux/kernel.h>
@@ -100,6 +100,16 @@ struct bio_list;
 struct fs_struct;
 struct perf_event_context;
 struct blk_plug;
+
+/* This structure is used to share information and statistics with other
+ * frameworks. It only shares wake up latency fro the moment but should be
+ * extended with other usefull informations
+ */
+struct sched_pm {
+	atomic_t  wake_latency; /* time to wake up the cpu */
+};
+
+DECLARE_PER_CPU(struct sched_pm, sched_stat);
 
 /*
  * List of flags we want to share for kernel threads,
