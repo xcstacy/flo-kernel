@@ -19,6 +19,7 @@
 #include <linux/ktime.h>
 #include <linux/hrtimer.h>
 #include <linux/module.h>
+#include <linux/sched.h>
 #include <trace/events/power.h>
 
 #include "cpuidle.h"
@@ -40,6 +41,13 @@ int cpuidle_disabled(void)
 void disable_cpuidle(void)
 {
 	off = 1;
+}
+
+static void cpuidle_set_current_state(int cpu, int latency)
+{
+	struct sched_pm *stat = &per_cpu(sched_stat, cpu);
+
+	atomic_set(&(stat->wake_latency), latency);
 }
 
 #if defined(CONFIG_ARCH_HAS_CPU_IDLE_WAIT)
@@ -101,11 +109,15 @@ int cpuidle_enter_state(struct cpuidle_device *dev, struct cpuidle_driver *drv,
 	ktime_t time_start, time_end;
 	s64 diff;
 
+	cpuidle_set_current_state(dev->cpu, target_state->exit_latency);
+
 	time_start = ktime_get();
 
 	entered_state = target_state->enter(dev, drv, index);
 
 	time_end = ktime_get();
+
+	cpuidle_set_current_state(dev->cpu, 0);
 
 	local_irq_enable();
 
